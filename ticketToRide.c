@@ -36,21 +36,23 @@ ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gam
     gameData->nbCities = getIntFromTokens(string, "nbCities", tokens, 19);
     gameData->nbTracks = getIntFromTokens(string, "nbTracks", tokens, 19);
 
+    // retrieve the tracks data
     char* tracksArray = getStringFromTokens(string, "trackData", tokens, 19);
-
-    int cardsIndex = searchInTokens(string, "playerCard", tokens, 19);
-    int deckCards = 0;
-    for(int i = 0; i < 10 * 3; i += 3) {
-        int cardCount = (unsigned int) atoi(string+tokens[cardsIndex + 1].start + i);
-        
-        if(cardCount > 0) {
-            CardColor card = i / 3;
-            gameData->cards[deckCards] = card;
-
-            deckCards += 1;
-        }
+    char* p = tracksArray;
+    int nbchar;
+    gameData->trackData = (int*) malloc(sizeof(int) * gameData->nbTracks);
+    int* ptr = gameData->trackData;
+    for(int i=0; i < gameData->nbTracks; i++){
+        sscanf(p, "%d %d %d %d %d %n", ptr, ptr+1, ptr+2, ptr+3, ptr+4, &nbchar);
+        ptr += 5;
+        p += nbchar;
     }
-    
+    free(tracksArray);
+
+    // retrieve the 4 cards
+    char* cardsArray = getStringFromTokens(string, "playerCard", tokens, 19);
+    sscanf(cardsArray, "%d %d %d %d %d %n", (int*)gameData->cards, (int*)gameData->cards+1, (int*)gameData->cards+2, (int*)gameData->cards+3, (int*)gameData->cards+4);
+    free(cardsArray);
     return ALL_GOOD;
 }
 

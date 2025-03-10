@@ -662,7 +662,7 @@ ResultCode printError(const char* function, ResultCode code, const char* message
         va_end(args);
     }
     /* stop on error */
-    if (DEBUG_LEVEL < STOP_ON_ERROR)
+    if (DEBUG_LEVEL <= DEBUG)
         return code;
     exit(code);
 }

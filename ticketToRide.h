@@ -81,11 +81,20 @@ typedef enum {
 
 typedef enum {
     NO_DEBUG = 0x0,
-    STOP_ON_ERROR = 0x1,
-    MESSAGE = 0x2,
-    DEBUG = 0x3,
-    INTERN_DEBUG = 0x4
+    MESSAGE,
+    DEBUG,
+    INTERN_DEBUG
 } DebugLevel;
+
+typedef enum {
+    NORMAL_MOVE = 0x1,
+    LOOSING_MOVE = 0x2,
+    WINNING_MOVE = 0x3,
+    ILLEGAL_MOVE = 0x4,
+
+    StateMax // Keep as last element
+} MoveState;
+
 
 
 typedef enum {
@@ -116,53 +125,44 @@ typedef enum {
 } Action;
 
 typedef enum {
-	PURPLE,
-	WHITE,
-	BLUE,
-	YELLOW,
-	ORANGE,
-	BLACK,
-	RED,
-	GREEN,
-    
-	LOCOMOTIVE
+    NONE = 0,
+    PURPLE = 1,
+	WHITE = 2,
+	BLUE = 3,
+	YELLOW = 4,
+	ORANGE = 5,
+	BLACK = 6,
+	RED = 7,
+	GREEN = 8,
+	LOCOMOTIVE = 9
 } CardColor;
 
 typedef struct {
     unsigned int from;
     unsigned int to;
-
     unsigned int score;
 } Objective;
 
 typedef struct {
     unsigned int from;
     unsigned int to;
-
     CardColor color;
     unsigned int nbLocomotives;
 } ClaimRouteMove;
 
-typedef struct {
-    CardColor card;
-} DrawCardMove;
-
-typedef struct {
-    bool selectCard[3];     // Set to true in order to not take the i-th card
-} ChooseObjectiveMove;
 
 typedef struct {
     Action action; // One of Actions values
 
     union {
-        ClaimRouteMove claimRoute;
-        DrawCardMove drawCard;
-        ChooseObjectiveMove chooseObjectve;
+        ClaimRouteMove claimRoute;      // the route we claim
+        CardColor drawCard;             // the card we draw
+        bool chooseObjectives[3];       // the objectives we choose
     };
 } MoveData;
 
 typedef struct MoveResult_ {
-    unsigned int state; // One of MoveState values
+    MoveState state; // One of MoveState values
 
     union {
         CardColor card;
@@ -176,16 +176,6 @@ typedef struct MoveResult_ {
 typedef struct {
         CardColor card[5]; // Visible cards
 } BoardState;
-
-typedef enum {
-    NORMAL_MOVE = 0x1,
-    LOOSING_MOVE = 0x2,
-    WINNING_MOVE = 0x3,
-    ILLEGAL_MOVE = 0x4,
-
-    StateMax // Keep as last element
-} MoveState;
-
 
 typedef struct {
     GamesType gameType; // One of GamesTypes values
@@ -263,6 +253,9 @@ ResultCode sendMessage(const char *message);
 // This function is used to display the game board during a game.
 // It will print the colored board in the console.
 ResultCode printBoard();
+
+// Prints the city name
+ResultCode printCity(unsigned int cityId);
 
 // This function is used to quit the currently running game.
 ResultCode quitGame();

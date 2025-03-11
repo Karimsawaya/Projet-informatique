@@ -11,6 +11,8 @@
 #include "ticketToRide.h"
 #include "codingGameServer.h"
 
+
+
 /*
     Default values for struct
     You can use those variables to initialize struct with default values
@@ -114,37 +116,25 @@ int packSendMoveData(char* data, const MoveData *moveData) {
 
 ResultCode unpackGetMoveData(char* string, jsmntok_t* tokens, MoveData* moveData, MoveResult* moveResult) {
     // Load received data into struct
-    moveData->action = (Action) atoi(&string[tokens[4].start]);
-    moveResult->state = (unsigned int) atoi(&string[tokens[6].start]);
-
-    int blockLength = tokens[8].end - tokens[8].start + 1;
-    char* opponentMessage = (char *) malloc(blockLength * sizeof(char));
-    if(opponentMessage == NULL) return MEMORY_ALLOCATION_ERROR;
-
-    sprintf(opponentMessage, "%.*s", blockLength - 1, &string[tokens[8].start]);
-    moveResult->opponentMessage = opponentMessage;;
-
-    int blockLength2 = tokens[10].end - tokens[10].start + 1;
-    char* message = (char *) malloc(blockLength2 * sizeof(char));
-    if(message == NULL) return MEMORY_ALLOCATION_ERROR;
-
-    sprintf(message, "%.*s", blockLength2 - 1, &string[tokens[10].start]);
-    moveResult->message = message;
+    moveData->action = (Action) getIntFromTokens(string, "move", tokens, 19);
+    moveResult->state = (unsigned int) getIntFromTokens(string, "returnCode", tokens, 19);
+    moveResult->opponentMessage = getStringFromTokens(string, "op_message", tokens, 19);;
+    moveResult->message = getStringFromTokens(string, "message", tokens, 19);
 
     switch (moveData->action) {
         case CLAIM_ROUTE:
-            moveData->claimRoute.from = atoi(&string[tokens[12].start]);
-            moveData->claimRoute.to = atoi(&string[tokens[14].start]);
-            moveData->claimRoute.color = (CardColor) atoi(&string[tokens[16].start]);
-            moveData->claimRoute.nbLocomotives = atoi(&string[tokens[18].start]);
+            moveData->claimRoute.from = getIntFromTokens(string, "from", tokens, 19);
+            moveData->claimRoute.to = getIntFromTokens(string, "to", tokens, 19);
+            moveData->claimRoute.color = (CardColor) getIntFromTokens(string, "color", tokens, 19);
+            moveData->claimRoute.nbLocomotives = getIntFromTokens(string, "nbLocomotives", tokens, 19);
             break;
         case DRAW_CARD:
-            moveData->drawCard = (CardColor) atoi(&string[tokens[12].start]);
+            moveData->drawCard = (CardColor) getIntFromTokens(string, "cardColor", tokens, 19);;
             break;
         case CHOOSE_OBJECTIVES:
-            moveData->chooseObjectives[0] = (unsigned int) atoi(&string[tokens[12].start]);
-            moveData->chooseObjectives[1] = (unsigned int) atoi(&string[tokens[14].start]);
-            moveData->chooseObjectives[2] = (unsigned int) atoi(&string[tokens[16].start]);
+            moveData->chooseObjectives[0] = getIntFromTokens(string, "keepedObjectives1", tokens, 19);
+            moveData->chooseObjectives[1] = getIntFromTokens(string, "keepedObjectives2", tokens, 19);
+            moveData->chooseObjectives[2] = getIntFromTokens(string, "keepedObjectives3", tokens, 19);
             break;
         case DRAW_BLIND_CARD:
             // No additional data to unpack
@@ -160,32 +150,26 @@ ResultCode unpackGetMoveData(char* string, jsmntok_t* tokens, MoveData* moveData
 }
 
 ResultCode unpackSendMoveResult(char *string, jsmntok_t *tokens, MoveResult *moveResult) {
-    moveResult->state = (MoveState) atoi(&string[tokens[2].start]);
+    Action moveAction = (Action) getIntFromTokens(string, "move", tokens, 29);
+    moveResult->state = (unsigned int) getIntFromTokens(string, "returnCode", tokens, 29);
+    moveResult->opponentMessage = getStringFromTokens(string, "op_message", tokens, 29);;
+    moveResult->message = getStringFromTokens(string, "message", tokens, 29);
 
-    int blockLength = tokens[6].end - tokens[6].start + 1;
-    char* opponentMessage = (char *) malloc(blockLength * sizeof(char));
-    if(opponentMessage == NULL) return MEMORY_ALLOCATION_ERROR;
-
-    sprintf(opponentMessage, "%.*s", blockLength - 1, &string[tokens[6].start]);
-    moveResult->opponentMessage = opponentMessage;
-
-    int blockLength2 = tokens[8].end - tokens[8].start + 1;
-    char* message = (char *) malloc(blockLength2 * sizeof(char));
-    if(message == NULL) return MEMORY_ALLOCATION_ERROR;
-
-    sprintf(message, "%.*s", blockLength2 - 1, &string[tokens[8].start]);
-    moveResult->message = message;
-
-    switch (moveResult->state) {
+    switch (moveAction) {
         case DRAW_BLIND_CARD:
-            moveResult->card = (CardColor) atoi(&string[tokens[10].start]);
+            moveResult->card = (CardColor) getIntFromTokens(string, "cardColor", tokens, 29);;
             break;
         case DRAW_OBJECTIVES:
-            for(int i = 0; i < 3; i++) {
-                moveResult->objectives[i].from = atoi(&string[tokens[10 + (i * 6)].start]);
-                moveResult->objectives[i].to = atoi(&string[tokens[12 + (i * 6)].start]);
-                moveResult->objectives[i].score = atoi(&string[tokens[14 + (i * 6)].start]);
-            }
+                // TODO: ugly hard-coded message
+                moveResult->objectives[0].from = getIntFromTokens(string, "from1", tokens, 29);
+                moveResult->objectives[0].to = getIntFromTokens(string, "to1", tokens, 29);
+                moveResult->objectives[0].score = getIntFromTokens(string, "score1", tokens, 29);
+                moveResult->objectives[1].from = getIntFromTokens(string, "from2", tokens, 29);
+                moveResult->objectives[1].to = getIntFromTokens(string, "to2", tokens, 29);
+                moveResult->objectives[1].score = getIntFromTokens(string, "score2", tokens, 29);
+                moveResult->objectives[2].from = getIntFromTokens(string, "from3", tokens, 29);
+                moveResult->objectives[2].to = getIntFromTokens(string, "to3", tokens, 29);
+                moveResult->objectives[2].score = getIntFromTokens(string, "score3", tokens, 29);
             break;
         case CLAIM_ROUTE:
             // No additional data to unpack

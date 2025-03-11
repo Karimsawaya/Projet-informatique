@@ -19,6 +19,7 @@
 #define API_H
 
 #include "ticketToRide.h"
+#include "json.h"
 
 // some intern definitions
 #define MAX_TIMEOUT 60 // in seconds

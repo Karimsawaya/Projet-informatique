@@ -165,9 +165,8 @@ ResultCode sendGameSettings(GameSettings gameSettings, GameData* gameData) {
     // Get server acknowledgement
     char* string;
     jsmntok_t* tokens;
-     if((result=getServerResponse(&string, &tokens, GAME_SETTINGS_ACKNOWLEDGEMENT_JSON_SIZE)) != ALL_GOOD)
+    if((result=getServerResponse(&string, &tokens, GAME_SETTINGS_ACKNOWLEDGEMENT_JSON_SIZE)) != ALL_GOOD)
         return printError(__FUNCTION__, result, "Server response failed");
-
 
     // Set struct from param to defaults values
     *gameData = GameDataDefaults;
@@ -401,8 +400,9 @@ ResultCode quitGame() {
     free(tokens);
 
     // Close the socket !
-    close(SOCKET);
-    printDebugMessage(__FUNCTION__, DEBUG, "Connection closed");
+    // close(SOCKET); // NOTE do not close the socket as the user may want to play another game
+    // printDebugMessage(__FUNCTION__, DEBUG, "Connection closed");
+    // TODO: create a close socket function (ou quit CGS whatever) to properly disconnect from the server and close th socket
 
     // Return success
     return ALL_GOOD;
@@ -703,11 +703,16 @@ int getIntFromTokens(const char *string, const char* prop, const jsmntok_t *toke
 
 char* getStringFromTokens(const char *string, const char* prop, const jsmntok_t *tokens, int nbMaxTokens) {
     int i = searchInTokens(string, prop, tokens, nbMaxTokens);
+
     if (i<nbMaxTokens) {
-        char* st = (char *) malloc(tokens[i+1].end - tokens[i+1].start + 1);
+        char* st = (char *) malloc(((tokens[i+1].end - tokens[i+1].start) + 1) * sizeof(char)); 
+
         if (st == NULL)
             printError(__FUNCTION__, MEMORY_ALLOCATION_ERROR, NULL);
+        
+        memset(st, 0, tokens[i+1].end - tokens[i+1].start + 1);
         strncpy(st, string+tokens[i+1].start, tokens[i+1].end - tokens[i+1].start);
+
         return st;
     }
     else return "";

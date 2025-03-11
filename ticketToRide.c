@@ -39,11 +39,12 @@ ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gam
     nbCities = gameData->nbCities = getIntFromTokens(string, "nbCities", tokens, 19);
     gameData->nbTracks = getIntFromTokens(string, "nbTracks", tokens, 19);
 
-    // retrieve the tracks data
+    // // retrieve the tracks data
     char* tracksArray = getStringFromTokens(string, "trackData", tokens, 19);
     char* p = tracksArray;
     int nbchar;
-    gameData->trackData = (int*) malloc(sizeof(int) * gameData->nbTracks);
+
+    gameData->trackData = (int*) malloc(sizeof(int) * gameData->nbTracks * 5);
     if (!gameData->trackData) return MEMORY_ALLOCATION_ERROR;
     int* ptr = gameData->trackData;
     for(int i=0; i < gameData->nbTracks; i++){
@@ -53,9 +54,9 @@ ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gam
     }
     free(tracksArray);
 
-    // retrieve the 4 cards
+    // Retrieve the 4 cards
     char* cardsArray = getStringFromTokens(string, "playerCards", tokens, 19);
-    sscanf(cardsArray, "%d %d %d %d %d", (int*)gameData->cards, (int*)gameData->cards+1, (int*)gameData->cards+2, (int*)gameData->cards+3, (int*)gameData->cards+4);
+    sscanf(cardsArray, "%d %d %d %d", gameData->cards, gameData->cards+1, gameData->cards+2, gameData->cards+3);
     free(cardsArray);
 
     // retrieve the city names
@@ -64,6 +65,7 @@ ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gam
     if (!cityNames) return MEMORY_ALLOCATION_ERROR;
     char* start = p = cities;
     int index = 0;
+
     while (1) {
         if (*p == '|' || *p == '\0') {
             size_t len = p - start;
@@ -202,8 +204,9 @@ ResultCode unpackSendMoveResult(char *string, jsmntok_t *tokens, MoveResult *mov
 }
 
 ResultCode unpackGetBoardState(char* string, jsmntok_t* tokens, BoardState* boardState) {
-    for(int i = 0; i < 5; i++)
-        boardState->card[i] = (CardColor) atoi(&string[tokens[4 + i * 2].start]);
+    // retrieve the 5 board cards
+    char* cardsArray = getStringFromTokens(string, "cards", tokens, 5);
+    sscanf(cardsArray, "%d %d %d %d %d", boardState->card, boardState->card+1, boardState->card+2, boardState->card+3, boardState->card+4);
 
     return ALL_GOOD;
 }

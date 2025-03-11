@@ -732,4 +732,4 @@ int searchInTokens(const char *string, const char* prop, const jsmntok_t *tokens
     return i;
 }
 
-#TODO: switch some of the function into static functions
+//TODO: switch some of the function into static functions

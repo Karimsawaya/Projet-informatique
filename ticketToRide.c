@@ -56,7 +56,7 @@ ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gam
 
     // Retrieve the 4 cards
     char* cardsArray = getStringFromTokens(string, "playerCards", tokens, 19);
-    sscanf(cardsArray, "%d %d %d %d", gameData->cards, gameData->cards+1, gameData->cards+2, gameData->cards+3);
+    sscanf(cardsArray, "%d %d %d %d", (int*)gameData->cards, (int*)gameData->cards+1, (int*)gameData->cards+2, (int*)gameData->cards+3);
     free(cardsArray);
 
     // retrieve the city names
@@ -160,7 +160,7 @@ ResultCode unpackGetMoveData(char* string, jsmntok_t* tokens, MoveData* moveData
 }
 
 ResultCode unpackSendMoveResult(char *string, jsmntok_t *tokens, MoveResult *moveResult) {
-    moveResult->state = (Action) atoi(&string[tokens[2].start]);
+    moveResult->state = (MoveState) atoi(&string[tokens[2].start]);
 
     int blockLength = tokens[6].end - tokens[6].start + 1;
     char* opponentMessage = (char *) malloc(blockLength * sizeof(char));
@@ -206,7 +206,7 @@ ResultCode unpackSendMoveResult(char *string, jsmntok_t *tokens, MoveResult *mov
 ResultCode unpackGetBoardState(char* string, jsmntok_t* tokens, BoardState* boardState) {
     // retrieve the 5 board cards
     char* cardsArray = getStringFromTokens(string, "cards", tokens, 5);
-    sscanf(cardsArray, "%d %d %d %d %d", boardState->card, boardState->card+1, boardState->card+2, boardState->card+3, boardState->card+4);
+    sscanf(cardsArray, "%d %d %d %d %d", (int*)boardState->card, (int*)boardState->card+1, (int*)boardState->card+2, (int*)boardState->card+3, (int*)boardState->card+4);
 
     return ALL_GOOD;
 }

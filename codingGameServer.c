@@ -418,8 +418,7 @@ ResultCode quitGame() {
     You are not supposed to use them directly
 
 */
-
-static ResultCode connectToSocket(const char *address, unsigned int port, int adrType) {
+ResultCode connectToSocket(const char *address, unsigned int port, int adrType) {
     int soc = socket(adrType, SOCK_STREAM, 0); // Use TCP socket
     if (soc < 0)
         return printError(__FUNCTION__, OTHER_ERROR, "Socket creation failed");
@@ -441,7 +440,7 @@ static ResultCode connectToSocket(const char *address, unsigned int port, int ad
     return ALL_GOOD;
 }
 
-static ResultCode dnsSearch(const char *domain, char** ipaddress, int* adrType) {
+ResultCode dnsSearch(const char *domain, char** ipaddress, int* adrType) {
     // Do a DNS search to resolve domain name
     struct addrinfo* dnsResult = NULL;
     int result = getaddrinfo(domain, 0, 0, &dnsResult);
@@ -471,7 +470,7 @@ static ResultCode dnsSearch(const char *domain, char** ipaddress, int* adrType) 
 }
 
 // return ALL_GOOD or OTHER_ERROR
-static ResultCode sendData(const char *data, unsigned int dataLength) {
+ResultCode sendData(const char *data, unsigned int dataLength) {
     // check if the socket is open
     if (SOCKET < 0)
         return printError(__FUNCTION__, OTHER_ERROR, "The connection to the server is not yet established. Call `connectToCGS` before!");
@@ -503,7 +502,7 @@ static ResultCode sendData(const char *data, unsigned int dataLength) {
 }
 
 // tokens can be NULL if we don't care about the answer
-static ResultCode getServerResponse(char **string, jsmntok_t **tokens, int nbMaxTokens) {
+ResultCode getServerResponse(char **string, jsmntok_t **tokens, int nbMaxTokens) {
     int stringLength;
     ResultCode result;
     bool nullTokens = false;
@@ -551,7 +550,7 @@ static ResultCode getServerResponse(char **string, jsmntok_t **tokens, int nbMax
     return ALL_GOOD;
 }
 
-static ResultCode getData(char **string, int *stringLength) {
+ResultCode getData(char **string, int *stringLength) {
     // Allocate buffer to store data from read
     char buffer[FIRST_MSG_LENGTH] = { 0 };
 
@@ -585,7 +584,7 @@ static ResultCode getData(char **string, int *stringLength) {
     return ALL_GOOD;
 }
 
-static ResultCode readNByte(char **buffer, int nbByte) {
+ResultCode readNByte(char **buffer, int nbByte) {
     int totalRead = 0;
     while (totalRead < nbByte) {
         int res2 = read(SOCKET, *buffer + totalRead, nbByte - totalRead);
@@ -604,14 +603,14 @@ static ResultCode readNByte(char **buffer, int nbByte) {
 
 */
 
-static int getIntegerLength(int value) {
+int getIntegerLength(int value) {
     int l = !value;
     while(value) { l++; value /= 10; }
 
     return l;
 }
 
-static int isValidIpAddress(const char *ipAddress) {
+int isValidIpAddress(const char *ipAddress) {
     struct sockaddr_in sa;
 
     // Assume IPV 4
@@ -732,3 +731,5 @@ int searchInTokens(const char *string, const char* prop, const jsmntok_t *tokens
     }
     return i;
 }
+
+#TODO: switch some of the function into static functions

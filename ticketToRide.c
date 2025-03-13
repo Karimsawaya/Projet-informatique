@@ -19,9 +19,9 @@
 */
 
 const GameSettings GameSettingsDefaults = { TRAINING, RANDOM_PLAYER, 10, 0, 0, 0 };
-const GameData GameDataDefaults = { "", 0, 0, 0, 0 };
+const GameData GameDataDefaults = { "", 0, 0, 0, 0, NULL, {0,0,0,0} };
 
-int nbCities = 0;
+unsigned int nbCities = 0;
 char** cityNames = NULL;
 
 /*

@@ -61,7 +61,7 @@ ResultCode readNByte(char **buffer, int nbByte);
 int getIntegerLength(int value);
 int isValidIpAddress(const char *ipAddress);
 ResultCode printError(const char* function, ResultCode code, const char* message, ...);
-void printDebugMessage(const char* function, unsigned int level, const char* message, ...);
+void printDebugMessage(const char* function, int level, const char* message, ...);
 int getIntFromTokens(const char *string, const char* prop, const jsmntok_t *tokens, int nbMaxTokens);
 char* getStringFromTokens(const char *string, const char* prop, const jsmntok_t *tokens, int nbMaxTokens);
 int searchInTokens(const char *string, const char* prop, const jsmntok_t *tokens, int nbMaxTokens);

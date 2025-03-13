@@ -2,9 +2,9 @@
 
     Specific functions for the Ticket to Ride game.
 
-    Require codingGameServer.c, codingGameServer.h, lib/json.h to works with.
+    Requires codingGameServer.c, codingGameServer.h, lib/json.h to works with.
 
-    Authors: Valentin Le Lièvre
+    Authors: Valentin Le Lièvre and Thibault Hilaire
     Licence: GPL
 
     Copyright 2025 Valentin Le Lièvre
@@ -15,13 +15,13 @@
 
     1. How to use:
         To connect to the server and play a game you have to call (in order):
-            - int connectToCGS(char* address, unsigned int port)
-            - int sendName(char* name)
-            - int sendGameSettings(GameSettings gameSettings, GameData* gameData)
+            - ResultCode connectToCGS(const char *address, unsigned int port)
+            - ResultCode sendName(const char *name)
+            - ResultCode sendGameSettings(GameSettings gameSettings, GameData* gameData)
 
         You will then be connected to a game and will be able to play by calling:
-            - int getMove(MoveData *moveData)
-            - int sendMove(unsigned int move, int* moveType)
+            - ResultCode getMove(MoveData* moveData, MoveResult* moveResult)
+            - ResultCode sendMove(const MoveData *moveData, MoveResult* moveResult)
 
     2. Constants:
         To communicate actions to the server you can use CONSTANTS variables, defined
@@ -33,11 +33,10 @@
         You can instantiate struct with pre-set default values by using:
             - GameSettings gameSettings = GameSettingsDefaults;
             - GameData gameData = GameDataDefaults;
-            - MoveData moveData = MoveDataDefaults;
 
         This will reduce potential errors and unexpected behaviours.
 
-    4. Every function will return an int indicating the success / failure of the function.
+    4. Every function will return an int (ResultCode) indicating the success / failure of the function.
         Possible error codes are:
             - 0x10: Param errors
             - 0x20: server / network errors
@@ -52,10 +51,7 @@
         Some functions are using malloc calls to allocate memory space. You will need
         to free those spaces.
 
-        Variables that need to be freed are:
-            - gameName from GameData struct
-            - board from GameData struct
-            - opponentMessage from MoveData struct
+        Variables that need to be freed are detailed in the comment of each function
 
         NOTE: you are likely to create multiple instance of MoveData, don't forget
         to free opponentMessage, or you will likely encounter Segmentation fault error.
@@ -71,6 +67,7 @@
     Structs
 */
 
+// `ResultCode` is used to indicate the failure/success of a function. Every important function returns this code
 typedef enum {
     PARAM_ERROR = 0x10,
     SERVER_ERROR = 0x20,
@@ -79,24 +76,32 @@ typedef enum {
     ALL_GOOD = 0x50
 } ResultCode;
 
+/* in some rare cases, it could be interesting to display some debug messages (log). This can be done by changing the value
+ of a specific variable named `DEBUG_LEVEL`
+ You can declare an extern variable with this name
+ | extern DebugLevel DEBUG_LEVEL;
+ And then set the level at appropriate message
+ | DEBUG_LEVEL = MESSAGE;
+*/
 typedef enum {
     NO_DEBUG = 0x0,
-    MESSAGE,
-    DEBUG,
-    INTERN_DEBUG
+    MESSAGE,                // display some messages, stop at errors
+    DEBUG,                  // display debug messages
+    INTERN_DEBUG            // display intern debug messages, like the messages exchanged between the client and the server
 } DebugLevel;
 
+/* different possible states for the move */
 typedef enum {
-    NORMAL_MOVE = 0x1,
-    LOOSING_MOVE = 0x2,
-    WINNING_MOVE = 0x3,
-    ILLEGAL_MOVE = 0x4,
+    NORMAL_MOVE = 0x1,          // regular move, nobody loose or win
+    LOOSING_MOVE = 0x2,         // the player looses the game
+    WINNING_MOVE = 0x3,         // the player wins the game
+    ILLEGAL_MOVE = 0x4,         // the player makes an illegal move, and thus loose
 
     StateMax // Keep as last element
 } MoveState;
 
 
-
+/* some different */
 typedef enum {
     TRAINING = 0x1, // Play against a bot
     MATCH = 0x2, // Play against a player

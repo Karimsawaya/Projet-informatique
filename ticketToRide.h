@@ -221,7 +221,13 @@ typedef struct {
 } GameSettings;
 
 /* game data, used to get the initial values of the board
- * here the number of tracks and cities */
+ * the `trackData` is a raw array of (5 x number of tracks) integers
+ * 	 Five integers are used to define a track:
+ * 	  - (1) id of the 1st city
+ * 	  - (2) id of the 2nd city
+ * 	  - (3) length of the track (between 1 and 6)
+ * 	  - (4) color of the track (MULTICOLOR if any color can be used)
+ * 	  - (5) color of the 2nd track if the track is double (NONE if the track is not a double track) */
 typedef struct {
     char* gameName; // String containing the game name
     int gameSeed; // Contain the seed used for the game board generation (if you didn't provide one)
@@ -229,7 +235,7 @@ typedef struct {
 
     int nbCities; // Total number of cities in the map
     int nbTracks;   // total number of tracks
-    int* trackData; // Track data, an array containing unformatted data about the tracks
+    int* trackData; // Track data, an array containing unformatted data about the trackstracks:
     CardColor cards[4];
 } GameData;
 

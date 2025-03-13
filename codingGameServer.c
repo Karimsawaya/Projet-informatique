@@ -579,6 +579,7 @@ ResultCode getData(char **string, int *stringLength) {
     if(*string == NULL) return MEMORY_ALLOCATION_ERROR;
 
     strcpy(*string, buffer2);
+    free(buffer2);
 
     // Return success
     return ALL_GOOD;
@@ -666,8 +667,8 @@ ResultCode printError(const char* function, ResultCode code, const char* message
     exit(code);
 }
 
-void printDebugMessage(const char* function, unsigned int level, const char* message, ...) {
-    const static char* levelString[] = {"\x1b[1;30m", "\x1b[1;30m", "\x1b[1;31m", "\x1b[1;32m", "\x1b[1;35m"};
+void printDebugMessage(const char* function, int level, const char* message, ...) {
+    static const char* levelString[] = {"\x1b[1;30m", "\x1b[1;30m", "\x1b[1;31m", "\x1b[1;32m", "\x1b[1;35m"};
     if(DEBUG_LEVEL>=level) {
         va_list args;
         va_start(args, message);

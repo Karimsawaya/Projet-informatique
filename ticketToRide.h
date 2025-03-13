@@ -98,7 +98,7 @@ typedef enum {
 /* different possible states for the move */
 typedef enum {
     NORMAL_MOVE = 0x1,          // regular move, nobody loose or win
-    LOOSING_MOVE = 0x2,         // the player looses the game
+    LOSING_MOVE = 0x2,         // the player looses the game
     WINNING_MOVE = 0x3,         // the player wins the game
     ILLEGAL_MOVE = 0x4,         // the player makes an illegal move, and thus loose
 

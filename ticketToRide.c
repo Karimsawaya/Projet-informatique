@@ -191,7 +191,7 @@ ResultCode unpackGetBoardState(char* string, jsmntok_t* tokens, BoardState* boar
     // retrieve the 5 board cards
     char* cardsArray = getStringFromTokens(string, "cards", tokens, 5);
     sscanf(cardsArray, "%d %d %d %d %d", (int*)boardState->card, (int*)boardState->card+1, (int*)boardState->card+2, (int*)boardState->card+3, (int*)boardState->card+4);
-
+    free(cardsArray);
     return ALL_GOOD;
 }
 

@@ -149,7 +149,7 @@ ResultCode sendGameSettings(GameSettings gameSettings, GameData* gameData) {
         return printError(__FUNCTION__, PARAM_ERROR, "Invalid starter value");
     if(gameSettings.seed > MAX_SEED)
         return printError(__FUNCTION__, PARAM_ERROR, "Invalid seed value");
-    
+
     // Parse data into json string
     char* data = (char *) malloc(GAME_SETTINGS_MAX_JSON_LENGTH * sizeof(char));
     if(data == NULL)
@@ -209,7 +209,7 @@ ResultCode sendGameSettings(GameSettings gameSettings, GameData* gameData) {
         return printError(__FUNCTION__, result, "Failed to unpack game settings");
 
     free(string);
-
+    free(tokens);
     // Return success
     return ALL_GOOD;
 }
@@ -404,6 +404,8 @@ ResultCode quitGame() {
     // printDebugMessage(__FUNCTION__, DEBUG, "Connection closed");
     // TODO: create a close socket function (ou quit CGS whatever) to properly disconnect from the server and close th socket
 
+    // TODO: deallocate memory for the cities
+
     // Return success
     return ALL_GOOD;
 }
@@ -545,6 +547,7 @@ ResultCode getServerResponse(char **string, jsmntok_t **tokens, int nbMaxTokens)
         free(*tokens);
         free(tokens);
     }
+
 
     // Return success
     return ALL_GOOD;

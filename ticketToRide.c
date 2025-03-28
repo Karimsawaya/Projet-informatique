@@ -82,7 +82,7 @@ ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gam
         }
         p++;
     }
-
+    free(cities);
     return ALL_GOOD;
 }
 
@@ -202,4 +202,11 @@ ResultCode printCity(unsigned int cityId) {
     // print the name
     printf("%s", cityNames[cityId]);
     return ALL_GOOD;
+}
+
+void deallocGameData() {
+    for (int i = 0; i < nbCities; i++) {
+        free(cityNames[i]);
+    }
+    free(cityNames);
 }

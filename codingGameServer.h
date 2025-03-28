@@ -58,6 +58,7 @@ ResultCode sendData(const char *data, unsigned int dataLength);
 ResultCode getServerResponse(char **string, jsmntok_t **tokens, int nbMaxTokens);
 ResultCode getData(char **string, int *stringLength);
 ResultCode readNByte(char **buffer, int nbByte);
+void deallocGameData();
 int getIntegerLength(int value);
 int isValidIpAddress(const char *ipAddress);
 ResultCode printError(const char* function, ResultCode code, const char* message, ...);

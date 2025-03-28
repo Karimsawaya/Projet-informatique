@@ -404,7 +404,8 @@ ResultCode quitGame() {
     // printDebugMessage(__FUNCTION__, DEBUG, "Connection closed");
     // TODO: create a close socket function (ou quit CGS whatever) to properly disconnect from the server and close th socket
 
-    // TODO: deallocate memory for the cities
+    // deallocate memory for the cities
+    deallocGameData();
 
     // Return success
     return ALL_GOOD;

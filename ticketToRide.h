@@ -100,7 +100,6 @@ typedef enum {
     NORMAL_MOVE = 0x1,          // regular move, nobody loose or win
     LOSING_MOVE = 0x2,         // the player looses the game
     WINNING_MOVE = 0x3,         // the player wins the game
-    ILLEGAL_MOVE = 0x4,         // the player makes an illegal move, and thus loose
 
     StateMax // Keep as last element
 } MoveState;

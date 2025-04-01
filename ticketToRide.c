@@ -1,212 +1,313 @@
+
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-
-// This define is used by the JSON library
-#define JSMN_HEADER
-#include "json.h"
-
-// Game headers
 #include "ticketToRide.h"
-#include "codingGameServer.h"
+#include "clientAPI.h"
 
 
+/* global variables used in intern, so the user do not have to pass them once again) */
+int nbTr;        		/* number of tracks */
+int nbC;				/* number of cities */
+char** cityNames;		/* array of city names (used by printCity) */
+CardColor faceUp[5];   /* store the face up cards returned by the get/sendMove */
 
-/*
-    Default values for struct
-    You can use those variables to initialize struct with default values
-*/
-
-const GameSettings GameSettingsDefaults = { TRAINING, RANDOM_PLAYER, 10, 0, 0, 0 };
-const GameData GameDataDefaults = { "", 0, 0, 0, 0, NULL, {0,0,0,0} };
-
-unsigned int nbCities = 0;
-char** cityNames = NULL;
-
-/*
-    Functions
-*/
-
-int packGameSettings(char* data, GameSettings gameSettings) {
-    int dataLength = sprintf(data, "{ 'gameType': %d, 'botId': %d, 'timeout': %d, 'starter': %d, 'seed': %d, 'reconnect': %d }", gameSettings.gameType, gameSettings.botId, gameSettings.timeout, gameSettings.starter, gameSettings.seed, gameSettings.reconnect);
-    return dataLength;
+/* -----------------------
+ * Dummy function that does
+ * a string copy (exactly as strcpy)
+ * but replace the '_' by ' ' in the same time it does the copy
+ */
+void strCpyReplace(char* dest, const char* src)
+{
+	while(*src) {
+		if (*src != '_')
+			*dest++ = *src;
+		else
+			*dest++ = ' ';
+		src++;
+	}
 }
 
 
-ResultCode unpackGameSettingsData(char *string, jsmntok_t *tokens, GameData *gameData) {
-    // Print string
-    printDebugMessage(__FUNCTION__, INTERN_DEBUG, "Received data: %s", string);
+/* -------------------------------------
+ * Initialize connection with the server
+ * This is the first function you should call, it will connect you to the server.
+ * You need to provide the server address and the port to connect to.
+ * This is a blocking function, it will wait until the connection is established, it may take some time.
+ *
+ * Parameters:
+ * - address: (string) address of the server
+ * - port: (int) port number used for the connection
+ * - name: (string) your bot's name
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode connectToCGS(const char* address, unsigned int port, const char* name){
+    connectToCGSServer(__FUNCTION__, address, port, name);
+    return ALL_GOOD;
+}
 
-    nbCities = gameData->nbCities = getIntFromTokens(string, "nbCities", tokens, 19);
-    gameData->nbTracks = getIntFromTokens(string, "nbTracks", tokens, 19);
 
-    // // retrieve the tracks data
-    char* tracksArray = getStringFromTokens(string, "trackData", tokens, 19);
-    char* p = tracksArray;
+/* -------------------------------------
+ * Send the game settings to the server in order to start a game
+ * After sending your name you need to send game settings to the server to start a game.
+ * You need to provide a GameSettings struct and a GameData struct to store the game data returned by the server.
+ * You can use the GameSettingsDefaults and GameDataDefaults variables to initialize the struct with default values.
+ * To fill the GameSettings struct you may want to use predefined constants available in codingGameServer.h.
+ *
+ * The fields `gameName` and `trackData` (of GameData) are allocated by the function, so they need to be freed by the user
+ *
+ * Parameters:
+ * - gameSettings: (string) string defining the settings for the game
+ * - gameData: (GameData*) store the game data
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode sendGameSettings(const char* gameSettings, GameData* gameData){
+    char data[4096];
     int nbchar;
+	char *p, **name;
+	char city[20];
 
-    gameData->trackData = (int*) malloc(sizeof(int) * gameData->nbTracks * 5);
-    if (!gameData->trackData) return MEMORY_ALLOCATION_ERROR;
-    int* ptr = gameData->trackData;
-    for(int i=0; i < gameData->nbTracks; i++){
-        sscanf(p, "%d %d %d %d %d %n", ptr, ptr+1, ptr+2, ptr+3, ptr+4, &nbchar);
-        ptr += 5;
-        p += nbchar;
-    }
-    free(tracksArray);
+    /* wait for a game  and parse the data*/
+	char gameName[50];
+	waitForGame(__FUNCTION__, gameSettings, gameName, data);
+	sscanf(data, "%d %d", &nbC, &nbTr);
+	gameData->nbTracks = nbTr;
+	gameData->nbCities = nbC;
+	cityNames = (char**) malloc(nbC*sizeof(char*));
+	gameData->gameName = (char*)malloc((strlen(gameName)+1)*sizeof(char));
+	strcpy(gameData->gameName, gameName);
 
-    // Retrieve the 4 cards
-    char* cardsArray = getStringFromTokens(string, "playerCards", tokens, 19);
-    sscanf(cardsArray, "%d %d %d %d", (int*)gameData->cards, (int*)gameData->cards+1, (int*)gameData->cards+2, (int*)gameData->cards+3);
-    free(cardsArray);
+	/* wait for the game data */
+	gameData->starter = getGameData( __FUNCTION__, data, 4096);
 
-    // retrieve the city names
-    char* cities = getStringFromTokens(string, "cities", tokens, 19);
-    cityNames = (char **)malloc(gameData->nbCities * sizeof(char *));
-    if (!cityNames) return MEMORY_ALLOCATION_ERROR;
-    char* start = p = cities;
-    int index = 0;
+	/* copy the cities' names */
+	p = data;
+	name = cityNames;
+	for(int i=0; i < nbC; i++){
+		sscanf(p, "%s%n", city, &nbchar);
+		p += nbchar;
+		*name = (char*) malloc(strlen(city)+1);
+		strCpyReplace(*(name++), city);
+	}
 
-    while (1) {
-        if (*p == '|' || *p == '\0') {
-            size_t len = p - start;
-            cityNames[index] = (char *)malloc(len + 1); // +1 for null terminator
-            if (!cityNames[index]) return MEMORY_ALLOCATION_ERROR;
-            strncpy(cityNames[index], start, len);
-            cityNames[index][len] = '\0'; // Null-terminate the string
-            index++;
-            if (*p == '\0')
-                break; // End of string
-            start = p + 1;
-        }
-        p++;
-    }
-    free(cities);
-    return ALL_GOOD;
+	/* copy the data in the tracks array */
+	gameData->trackData = (int*) malloc(sizeof(int) * gameData->nbTracks * 5);
+	int* tracks = gameData->trackData;
+	if (!gameData->trackData) return MEMORY_ALLOCATION_ERROR;
+	for(int i=0; i < nbTr; i++){
+		sscanf(p, "%d %d %d %d %d %n", tracks, tracks+1, tracks+2, tracks+3, tracks+4, &nbchar);
+		tracks += 5;
+		p += nbchar;
+	}
+
+	/* get the 5 face up cards, but ignore them */
+	sscanf(p, "%d %d %d %d %d %n", (int*)faceUp, (int*)faceUp+1, (int*)faceUp+2, (int*)faceUp+3, (int*)faceUp+4, &nbchar);
+	p += nbchar;
+	/* get the 4 initial cards */
+	sscanf(p, "%d %d %d %d", (int*)gameData->cards, (int*)gameData->cards+1, (int*)gameData->cards+2, (int*)gameData->cards+3);
+
+	return ALL_GOOD;
 }
 
-int packSendMoveData(char* data, const MoveData *moveData) {
-    int dataLength = 0;
 
-    switch (moveData->action) {
+
+/* -------------------------------------
+ * Get the move of the opponent
+ * During a game this function is used to know what your opponent did during his turn.
+ * You need to provide an empty MoveData struct and an empty MoveResult struct to store the move data returned by the server.
+ * MoveData struct store the move your opponent did and MoveResult struct store the result of the move.
+ *
+ * The fields `opponentMessage` and `message` (of moveResult) are allocated by the function, so they need to be freed by the user
+ *
+ * Parameters:
+ * - moveData: (GameSettings*) data defining the opponent's move
+ * - moreResult: (MoveResult*) data returned after the move
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode getMove(MoveData* moveData, MoveResult* moveResult){
+	char moveStr[MAX_GET_MOVE];
+	char msg[MAX_MESSAGE];
+	int obj[3];
+	char* p;
+	unsigned int nbchar;
+
+
+	/* get the move */
+	moveResult->state = getCGSMove(__FUNCTION__, moveStr, msg);
+	moveResult->replay = false;
+
+	/* extract result */
+	if (moveResult->state == NORMAL_MOVE) {
+		sscanf(moveStr, "%d%n", (int*) &moveData->action, &nbchar);
+		p = moveStr + nbchar;
+		if (moveData->action == CLAIM_ROUTE) {
+			sscanf(p, "%d %d %d %d", &moveData->claimRoute.from, &moveData->claimRoute.to, (int*)&moveData->claimRoute.color, &moveData->claimRoute.nbLocomotives);
+		}
+		else if (moveData->action == DRAW_CARD) {
+			sscanf(msg, "%d %d %d %d %d %d %d", &moveResult->replay, (int*) &moveData->drawCard, faceUp, faceUp+1, faceUp+2, faceUp+3, faceUp+4);
+		}
+		else if (moveData->action == DRAW_BLIND_CARD){
+			sscanf(msg, "%d", &moveResult->replay);
+			moveResult->card = NONE;		/* we don't know which card the opponent has */
+		}
+		else if (moveData->action == DRAW_OBJECTIVES) {
+			moveResult->replay = true;
+		}
+		else if (moveData->action == CHOOSE_OBJECTIVES) {
+			sscanf(p, "%d %d %d", obj, obj + 1, obj + 2);
+			for(int i=0;i<3;i++)
+			    moveData->chooseObjectives[i] = (bool) obj[i];
+		}
+	}
+
+    //TODO: get the messages
+    moveResult->message = NULL;
+    moveResult->opponentMessage = NULL;
+
+	return ALL_GOOD;
+
+
+}
+
+
+
+/* -------------------------------------
+ * Send the move to the server
+ * During a game this function is used to send your move to the server.
+ * You need to provide a MoveData struct containing your move and an empty MoveResult struct to store the result of the
+ * move returned by the server.
+ *
+ * The fields `opponentMessage` and `message` (of moveResult) are allocated by the function, so they need to be freed by the user
+ *
+ * Parameters:
+ * - moveData: (GameSettings*) data defining our move
+ * - moreResult: (MoveResult*) data returned after the move
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode sendMove(const MoveData *moveData, MoveResult* moveResult){
+    char msg[256];
+	char answer[MAX_MESSAGE], *str = answer;
+	int nbchar;
+	int objectiveCards[3];
+	int replay;
+
+	// TODO: manage messages
+	moveResult->message = NULL;
+	moveResult->opponentMessage = NULL;
+	moveResult->replay = false;
+    // send the appropriate message
+    switch(moveData->action){
+
         case CLAIM_ROUTE:
-            dataLength = sprintf(data, "{ 'action': 'sendMove', 'move': %d, 'from': %d, 'to': %d, 'color': %d, 'nbLocomotives': %d }",
-                CLAIM_ROUTE, moveData->claimRoute.from, moveData->claimRoute.to, moveData->claimRoute.color, moveData->claimRoute.nbLocomotives);
+            sprintf(msg, "1 %d %d %d %d", moveData->claimRoute.from, moveData->claimRoute.to, moveData->claimRoute.color, moveData->claimRoute.nbLocomotives);
+	        moveResult->state = sendCGSMove(__FUNCTION__, msg, answer);
+	        break;
+
+	    case DRAW_BLIND_CARD:
+	        moveResult->state = sendCGSMove(__FUNCTION__, "2", answer);
+        	/* get card drawn */
+	        if (moveResult->state == NORMAL_MOVE) {
+		        sscanf(answer, "%d %d", &replay, (int*)moveResult->card);
+	        	moveResult->replay = replay;
+	        }
+		    break;
+
+		case DRAW_CARD:
+			sprintf(msg, "3 %d", moveData->drawCard);
+	        moveResult->state = sendCGSMove(__FUNCTION__, msg, answer);
+        	if (moveResult->state == NORMAL_MOVE) {
+        		sscanf(answer, "%d %d %d %d %d %d", &replay, (int*)faceUp, (int*)faceUp+1, (int*)faceUp+2, (int*)faceUp+3, (int*)faceUp+4);
+        		moveResult->replay = replay;
+        	}
+		    break;
+
+		case DRAW_OBJECTIVES:
+			moveResult->state = sendCGSMove(__FUNCTION__, "4", answer);
+            if (moveResult->state == NORMAL_MOVE) {
+                Objective *p = moveResult->objectives;
+                for (int i = 0; i < 3; i++, p++) {
+                    sscanf(str, "%d %d %d%n", &p->from, &p->to, &p->score, &nbchar);
+                    str += nbchar;
+                }
+            	moveResult->replay = true;
+            }
             break;
-        case DRAW_BLIND_CARD:
-            dataLength = sprintf(data, "{ 'action': 'sendMove', 'move': %d }", DRAW_BLIND_CARD);
-            break;
-        case DRAW_CARD:
-            dataLength = sprintf(data, "{ 'action': 'sendMove', 'move': %d, 'card': %d }", DRAW_CARD, moveData->drawCard);
-            break;
-        case DRAW_OBJECTIVES:
-            dataLength = sprintf(data, "{ 'action': 'sendMove', 'move': %d }", DRAW_OBJECTIVES);
-            break;
+
         case CHOOSE_OBJECTIVES:
-            dataLength = sprintf(data, "{ 'action': 'sendMove', 'move': %d, 'selectCard': [%d, %d, %d] }",
-                CHOOSE_OBJECTIVES, moveData->chooseObjectives[0], moveData->chooseObjectives[1], moveData->chooseObjectives[2]);
+            sprintf(msg, "5 %d %d %d", (int) moveData->chooseObjectives[0], (int) moveData->chooseObjectives[1], (int) moveData->chooseObjectives[2]);
+	        moveResult->state = sendCGSMove(__FUNCTION__, msg, answer);
             break;
-        default:
-            return -1;
-    }
-
-    return dataLength;
-}
-
-ResultCode unpackGetMoveData(char* string, jsmntok_t* tokens, MoveData* moveData, MoveResult* moveResult) {
-    // Load received data into struct
-    moveData->action = (Action) getIntFromTokens(string, "move", tokens, 19);
-    moveResult->state = (unsigned int) getIntFromTokens(string, "returnCode", tokens, 19);
-    moveResult->opponentMessage = getStringFromTokens(string, "op_message", tokens, 19);;
-    moveResult->message = getStringFromTokens(string, "message", tokens, 19);
-
-    switch (moveData->action) {
-        case CLAIM_ROUTE:
-            moveData->claimRoute.from = getIntFromTokens(string, "from", tokens, 19);
-            moveData->claimRoute.to = getIntFromTokens(string, "to", tokens, 19);
-            moveData->claimRoute.color = (CardColor) getIntFromTokens(string, "color", tokens, 19);
-            moveData->claimRoute.nbLocomotives = getIntFromTokens(string, "nbLocomotives", tokens, 19);
-            break;
-        case DRAW_CARD:
-            moveData->drawCard = (CardColor) getIntFromTokens(string, "cardColor", tokens, 19);;
-            break;
-        case CHOOSE_OBJECTIVES:
-            moveData->chooseObjectives[0] = getIntFromTokens(string, "keepedObjectives1", tokens, 19);
-            moveData->chooseObjectives[1] = getIntFromTokens(string, "keepedObjectives2", tokens, 19);
-            moveData->chooseObjectives[2] = getIntFromTokens(string, "keepedObjectives3", tokens, 19);
-            break;
-        case DRAW_BLIND_CARD:
-            // No additional data to unpack
-            break;
-        case DRAW_OBJECTIVES:
-            // No additional data to unpack
-            break;
-        default:
-            return PARAM_ERROR;
     }
 
     return ALL_GOOD;
+
 }
 
-ResultCode unpackSendMoveResult(char *string, jsmntok_t *tokens, MoveResult *moveResult) {
-    Action moveAction = (Action) getIntFromTokens(string, "move", tokens, 29);
-    moveResult->state = (unsigned int) getIntFromTokens(string, "returnCode", tokens, 29);
-    moveResult->opponentMessage = getStringFromTokens(string, "op_message", tokens, 29);;
-    moveResult->message = getStringFromTokens(string, "message", tokens, 29);
 
-    switch (moveAction) {
-        case DRAW_BLIND_CARD:
-            moveResult->card = (CardColor) getIntFromTokens(string, "cardColor", tokens, 29);;
-            break;
-        case DRAW_OBJECTIVES:
-                // TODO: ugly hard-coded message
-                moveResult->objectives[0].from = getIntFromTokens(string, "from1", tokens, 29);
-                moveResult->objectives[0].to = getIntFromTokens(string, "to1", tokens, 29);
-                moveResult->objectives[0].score = getIntFromTokens(string, "score1", tokens, 29);
-                moveResult->objectives[1].from = getIntFromTokens(string, "from2", tokens, 29);
-                moveResult->objectives[1].to = getIntFromTokens(string, "to2", tokens, 29);
-                moveResult->objectives[1].score = getIntFromTokens(string, "score2", tokens, 29);
-                moveResult->objectives[2].from = getIntFromTokens(string, "from3", tokens, 29);
-                moveResult->objectives[2].to = getIntFromTokens(string, "to3", tokens, 29);
-                moveResult->objectives[2].score = getIntFromTokens(string, "score3", tokens, 29);
-            break;
-        case CLAIM_ROUTE:
-            // No additional data to unpack
-            break;
-        case CHOOSE_OBJECTIVES:
-            // No additional data to unpack
-            break;
-        case DRAW_CARD:
-            // No additional data to unpack
-            break;
-        default:
-            return PARAM_ERROR;
-    }
-
+/* -------------------------------------
+ * This function is used to get the current state of the board during a game.
+ * It returns the 5 face-up cards
+ *
+ * Parameters:
+ * - boardState: (BoardState*) the 5 face-up cards
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode getBoardState(BoardState* boardState){
+    for(int i=0;i<5;i++)
+        boardState->card[i] = faceUp[i];
     return ALL_GOOD;
 }
 
-ResultCode unpackGetBoardState(char* string, jsmntok_t* tokens, BoardState* boardState) {
-    // retrieve the 5 board cards
-    char* cardsArray = getStringFromTokens(string, "cards", tokens, 5);
-    sscanf(cardsArray, "%d %d %d %d %d", (int*)boardState->card, (int*)boardState->card+1, (int*)boardState->card+2, (int*)boardState->card+3, (int*)boardState->card+4);
-    free(cardsArray);
+/* -------------------------------------
+ * This function is used to send a message to your opponent during a game.
+ * You need to provide the message as a string. It should be less than 256 characters long.
+ *
+ * Parameters:
+ * - message: (string) the message sent
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode sendMessage(const char* message){
+    sendCGSComment( __FUNCTION__, message);
     return ALL_GOOD;
 }
 
-// Prints the city name
-ResultCode printCity(unsigned int cityId) {
-    // check the parameters
-    if (cityId >= nbCities) return PARAM_ERROR;
-    // print the name
-    printf("%s", cityNames[cityId]);
+
+/* -------------------------------------
+ * This function is used to display the game board during a game.
+ * It will print the colored board in the console.
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode printBoard(){
+    printCGSGame(__FUNCTION__);
     return ALL_GOOD;
 }
 
-void deallocGameData() {
-    for (int i = 0; i < nbCities; i++) {
-        free(cityNames[i]);
-    }
-    free(cityNames);
+
+/* -------------------------------------
+ * This function prints the city name
+ *
+ * Parameters:
+ * - cityId: (int) id of the city to be printed
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode printCity(unsigned int cityId){
+	printf("%s", cityNames[cityId]);
+	return ALL_GOOD;
+}
+
+
+/* -------------------------------------
+ * This function is used to quit the currently running game.
+ *
+ *
+ * Returns the error code (ALL_GOOD if everything is ok) */
+ResultCode quitGame(){
+	/* free the data */
+	char** p = cityNames;
+	for(int i=0; i<nbC; i++)
+		free(*p++);
+	free(cityNames);
+	/* close the connection */
+	closeCGSConnection(__FUNCTION__);
+
+	return ALL_GOOD;
 }

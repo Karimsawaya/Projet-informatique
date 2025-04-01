@@ -1,15 +1,34 @@
 /*
++----------------------------------------------------+
+|                                                    |
+|        #######                                     |
+|           #    #  ####  #    # ###### #####        |
+|           #    # #    # #   #  #        #          |
+|           #    # #      ####   #####    #          |
+|           #    # #      #  #   #        #          |
+|           #    # #    # #   #  #        #          |
+|           #    #  ####  #    # ######   #          |
+|                                                    |
+|                      ######                        |
+|      #####  ####     #     # # #####  ######       |
+|        #   #    #    #     # # #    # #            |
+|        #   #    #    ######  # #    # #####        |
+|        #   #    #    #   #   # #    # #            |
+|        #   #    #    #    #  # #    # #            |
+|        #    ####     #     # # #####  ######       |
+|                                                    |
+|                                                    |
++----------------------------------------------------+
 
-    Specific functions for the Ticket to Ride game.
+Authors: T. Hilaire, V. Le Lièvre
+Licence: GPL
 
-    Requires codingGameServer.c, codingGameServer.h, lib/json.h to works with.
+File: TicketToRide.h
+	Client API for the TicketToRide game with CGS
 
-    Authors: Valentin Le Lièvre and Thibault Hilaire
-    Licence: GPL
-
-    Copyright 2025 Valentin Le Lièvre
-
+Copyright 2025 T. Hilaire, V. Le Lièvre
 */
+
 
 /*
 
@@ -58,70 +77,12 @@
 
 */
 
-#ifndef TICKET_TO_RIDE_H
-#define TICKET_TO_RIDE_H
 
+#ifndef __TICKET_TO_RIDE_H__
+#define __TICKET_TO_RIDE_H__
+#include "clientAPI.h"
 #include <stdbool.h>
 
-
-/*
- *   Structure and type definitions
-*/
-
-
-/* `ResultCode` is used to indicate the failure/success of a function. Every important function returns this code */
-typedef enum {
-    PARAM_ERROR = 0x10,
-    SERVER_ERROR = 0x20,
-    OTHER_ERROR = 0x30,
-    MEMORY_ALLOCATION_ERROR = 0x40,
-    ALL_GOOD = 0x50
-} ResultCode;
-
-
-/* Debug level
- * in some rare cases, it could be interesting to display some debug messages (log). This can be done by changing the
- * value of a specific variable named `DEBUG_LEVEL`
- * You can declare an extern variable with this name
- * `extern DebugLevel DEBUG_LEVEL;`
- * And then set the level at appropriate message
- * `DEBUG_LEVEL = MESSAGE;`
- */
-typedef enum {
-    NO_DEBUG = 0x0,
-    MESSAGE,                // display some messages, stop at errors
-    DEBUG,                  // display debug messages
-    INTERN_DEBUG            // display intern debug messages, like the messages exchanged between the client and the server
-} DebugLevel;
-
-
-/* different possible states for the move */
-typedef enum {
-    NORMAL_MOVE = 0x1,          // regular move, nobody loose or win
-    LOSING_MOVE = 0x2,         // the player looses the game
-    WINNING_MOVE = 0x3,         // the player wins the game
-
-    StateMax // Keep as last element
-} MoveState;
-
-
-/* some different game type (play against a bot, be involved in a tournament, etc.) */
-typedef enum {
-    TRAINING = 0x1, // Play against a bot
-    MATCH = 0x2, // Play against a player
-    TOURNAMENT = 0x3, // Enter a tournament
-
-    GamesTypesMax // Keep as last element, is used for params checking
-} GamesType;
-
-
-/* some different bots for TicketToRide */
-typedef enum {
-    RANDOM_PLAYER = 0x1,        // dummy bot that plays randomly (but only legal moves)
-    NICE_BOT,                   // better bot, but not very smart
-
-    BotsNamesMax // Keep as last element
-} BotsNames;
 
 
 /* The 5 different type of moves
@@ -194,6 +155,7 @@ typedef struct MoveResult_ {
         CardColor card;             // card when we draw a blind card
         Objective objectives[3];    // objectives when we draw the ojbectives
     };
+    bool replay;                    // true if the player plays once again
 
     char* opponentMessage;          // String containing a message send by the opponent
     char* message;                  // String containing a message send by the server
@@ -207,17 +169,6 @@ typedef struct {
         CardColor card[5]; // Visible cards
 } BoardState;
 
-/* game settings used to specify the type of the game we want to play */
-typedef struct {
-    GamesType gameType;     // One of GamesTypes values
-    BotsNames botId;        // One of BotsName values (only if you play in training)
-
-    unsigned int timeout; // Timeout in seconds, max value 60, default 15 (used only in training mode, tournament mode is set to 15)
-    unsigned char starter; // Define who starts, 1 -> you or 2 -> opponent, set to 0 for random, default 0 (used only in training mode)
-    unsigned int seed; // Seed for the board generation, useful when debugging to play the same game again, max value 9999, default to 0 for random (used only in training mode)
-
-    unsigned char reconnect; // Set 1 if you want to reconnect to a game you already started, default 0
-} GameSettings;
 
 /* game data, used to get the initial values of the board
  * the `trackData` is a raw array of (5 x number of tracks) integers
@@ -240,17 +191,6 @@ typedef struct {
 
 
 
-
-/*
- *   Default values for struct
- *
- *  You can use those variables to initialize struct with default values
-*/
-
-extern const GameSettings GameSettingsDefaults;
-extern const GameData GameDataDefaults;
-
-
 /*
 
     Exposed functions
@@ -266,21 +206,10 @@ extern const GameData GameDataDefaults;
  * Parameters:
  * - address: (string) address of the server
  * - port: (int) port number used for the connection
+ * - name: (string) your bot's name
  *
  * Returns the error code (ALL_GOOD if everything is ok) */
-ResultCode connectToCGS(const char *address, unsigned int port);
-
-
-/* -------------------------------------
- * Send your name to the server
- * After connecting to the server you need to send your name to the server. It will be used to uniquely identify you.
- * You need to provide your name as a string. It should be less than 90 characters long.
- *
- * Parameters:
- * - name: (string) bot's name
- *
- * Returns the error code (ALL_GOOD if everything is ok) */
-ResultCode sendName(const char *name);
+ResultCode connectToCGS(const char* address, unsigned int port, const char* name);
 
 
 /* -------------------------------------
@@ -293,11 +222,11 @@ ResultCode sendName(const char *name);
  * The fields `gameName` and `trackData` (of GameData) are allocated by the function, so they need to be freed by the user
  *
  * Parameters:
- * - gameSettings: (GameSettings) data defining the settings for the game
+ * - gameSettings: (string) string defining the settings for the game
  * - gameData: (GameData*) store the game data
  *
  * Returns the error code (ALL_GOOD if everything is ok) */
-ResultCode sendGameSettings(GameSettings gameSettings, GameData* gameData);
+ResultCode sendGameSettings(const char* gameSettings, GameData* gameData);
 
 
 /* -------------------------------------
@@ -351,13 +280,12 @@ ResultCode getBoardState(BoardState* boardState);
  * - message: (string) the message sent
  *
  * Returns the error code (ALL_GOOD if everything is ok) */
-ResultCode sendMessage(const char *message);
+ResultCode sendMessage(const char* message);
 
 
 /* -------------------------------------
  * This function is used to display the game board during a game.
  * It will print the colored board in the console.
- *
  *
  * Returns the error code (ALL_GOOD if everything is ok) */
 ResultCode printBoard();

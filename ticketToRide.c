@@ -129,6 +129,7 @@ ResultCode getMove(MoveData* moveData, MoveResult* moveResult){
 	int obj[3];
 	char* p;
 	unsigned int nbchar;
+	int replay;
 
 
 	/* get the move */
@@ -143,10 +144,12 @@ ResultCode getMove(MoveData* moveData, MoveResult* moveResult){
 			sscanf(p, "%d %d %d %d", &moveData->claimRoute.from, &moveData->claimRoute.to, (int*)&moveData->claimRoute.color, &moveData->claimRoute.nbLocomotives);
 		}
 		else if (moveData->action == DRAW_CARD) {
-			sscanf(msg, "%d %d %d %d %d %d %d", &moveResult->replay, (int*) &moveData->drawCard, faceUp, faceUp+1, faceUp+2, faceUp+3, faceUp+4);
+			sscanf(msg, "%d %d %d %d %d %d %d", &replay, (int*) &moveData->drawCard, (int*) faceUp, (int*) faceUp+1, (int*) faceUp+2, (int*) faceUp+3, (int*) faceUp+4);
+			moveResult->replay =  (bool) replay;
 		}
 		else if (moveData->action == DRAW_BLIND_CARD){
-			sscanf(msg, "%d", &moveResult->replay);
+			sscanf(msg, "%d", &replay);
+			moveResult->replay = (bool) replay;
 			moveResult->card = NONE;		/* we don't know which card the opponent has */
 		}
 		else if (moveData->action == DRAW_OBJECTIVES) {
@@ -187,7 +190,6 @@ ResultCode sendMove(const MoveData *moveData, MoveResult* moveResult){
     char msg[256];
 	char answer[MAX_MESSAGE], *str = answer;
 	int nbchar;
-	int objectiveCards[3];
 	int replay;
 
 	// TODO: manage messages
@@ -206,7 +208,7 @@ ResultCode sendMove(const MoveData *moveData, MoveResult* moveResult){
 	        moveResult->state = sendCGSMove(__FUNCTION__, "2", answer);
         	/* get card drawn */
 	        if (moveResult->state == NORMAL_MOVE) {
-		        sscanf(answer, "%d %d", &replay, (int*)moveResult->card);
+		        sscanf(answer, "%d %d", &replay, (int*)&moveResult->card);
 	        	moveResult->replay = replay;
 	        }
 		    break;

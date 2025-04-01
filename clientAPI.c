@@ -112,7 +112,7 @@ size_t read_inbuf(const char *fct, char *buf, size_t nbuf) {
 		dispDebug (fct, 3, "prepare to receive a message of length :%lu",length);
 	}
 	size_t mini = length > nbuf ? nbuf: length;
-	int read_length = 0;
+	unsigned int read_length = 0;
 	bzero(buf, nbuf);
 	do {
 		r = read(sockfd, buf + read_length, mini-read_length);

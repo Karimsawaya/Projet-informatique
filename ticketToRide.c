@@ -48,15 +48,26 @@ ResultCode connectToCGS(const char* address, unsigned int port, const char* name
 
 /* -------------------------------------
  * Send the game settings to the server in order to start a game
- * After sending your name you need to send game settings to the server to start a game.
- * You need to provide a GameSettings struct and a GameData struct to store the game data returned by the server.
- * You can use the GameSettingsDefaults and GameDataDefaults variables to initialize the struct with default values.
- * To fill the GameSettings struct you may want to use predefined constants available in codingGameServer.h.
- *
+ * After connecting, you need to send game settings to the server to start a game.
+ * You need to provide a string for the game setting and a GameData struct to store the game data returned by the server.
+  *
  * The fields `gameName` and `trackData` (of GameData) are allocated by the function, so they need to be freed by the user
  *
  * Parameters:
- * - gameSettings: (string) string defining the settings for the game
+* - gameType: string (max 200 characters) type of the game we want to play (empty string for regular game)
+ *             "TRAINING xxxx" to play with the bot xxxx
+ *             "TOURNAMENT xxxx" to join the tournament xxxx
+ *     gameType can also contain extra data in form "key1=value1 key2=value1 ..." to provide options (to bots)
+ *     invalid keys are ignored, invalid values leads to error
+ *     the options are:
+ *        - 'timeout': allows to define the timeout when training (in seconds)
+ *        - 'seed': allows to set the seed of the random generator
+ *        - 'start': allows to set who starts ('0' to begin, '1' otherwise)
+ *        - 'map': allows to choose a map ('USA', 'small' or 'Europe')
+ *     the following bots are available:
+ *        - DO_NOTHING (stupid bot what withdraw cards)
+ *        - PLAY_RANDOM (bot that plays randomly)
+ *        - NICE_BOT (bot that plays reasonably well, but not too well)
  * - gameData: (GameData*) store the game data
  *
  * Returns the error code (ALL_GOOD if everything is ok) */

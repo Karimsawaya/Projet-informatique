@@ -86,6 +86,10 @@ ResultCode sendGameSettings(const char* gameSettings, GameData* gameData){
 	cityNames = (char**) malloc(nbC*sizeof(char*));
 	gameData->gameName = (char*)malloc((strlen(gameName)+1)*sizeof(char));
 	strcpy(gameData->gameName, gameName);
+	/* get the seed from the name */
+	char seedstr[7];
+	strncpy(seedstr, gameName, 6);
+	sscanf(seedstr, "%x", &gameData->gameSeed);
 
 	/* wait for the game data */
 	gameData->starter = getGameData( __FUNCTION__, data, 4096);

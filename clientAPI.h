@@ -45,8 +45,8 @@ typedef enum {
 
 /* intern constants */
 
-#define MAX_GET_MOVE 128	    	/* maximum size of the string representing a move */
-#define MAX_MESSAGE 1024			/* maximum size of the message move */
+#define MAX_GET_MOVE 3000	    	/* maximum size of the string representing a move */
+#define MAX_MESSAGE 3000			/* maximum size of the message move */
 
 /* prototypes */
 void connectToCGSServer(const char* fct, const char* serverName, unsigned int port, const char* name);

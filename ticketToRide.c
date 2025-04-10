@@ -89,6 +89,7 @@ ResultCode sendGameSettings(const char* gameSettings, GameData* gameData){
 	/* get the seed from the name */
 	char seedstr[7];
 	strncpy(seedstr, gameName, 6);
+	seedstr[6] = '\0';
 	sscanf(seedstr, "%x", &gameData->gameSeed);
 
 	/* wait for the game data */

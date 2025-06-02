@@ -254,6 +254,11 @@ ResultCode sendMove(const MoveData *moveData, MoveResult* moveResult){
             sprintf(msg, "5 %d %d %d", (int) moveData->chooseObjectives[0], (int) moveData->chooseObjectives[1], (int) moveData->chooseObjectives[2]);
 	        moveResult->state = sendCGSMove(__FUNCTION__, msg, answer);
             break;
+
+    	default:
+    		sprintf(msg, "%d", moveData->action);
+    		moveResult->state = sendCGSMove(__FUNCTION__, msg, answer);
+    		return PARAM_ERROR;
     }
 
     return ALL_GOOD;
